@@ -4,6 +4,7 @@ package cn.qingyuyu.yulauncher;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
@@ -23,10 +24,11 @@ import java.util.List;
 import androidx.appcompat.app.AppCompatActivity;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MainActivityInterface{
     private GridView gview;
     List<AppInfo> appList = null;
-
+    MyGridViewAdapter adapter;
+    private MyReceiver myReceiver=null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,6 +67,14 @@ public class MainActivity extends AppCompatActivity {
                                             startActivity(intent);
                                         }
                                     }
+                                    myReceiver = new MyReceiver(MainActivity.this);
+                                    IntentFilter filter = new IntentFilter();
+
+                                    filter.addAction("android.intent.action.PACKAGE_ADDED");
+                                    filter.addAction("android.intent.action.PACKAGE_REMOVED");
+                                    filter.addDataScheme("package");
+                                   MainActivity. this.registerReceiver(myReceiver, filter);
+
                                 }
                             }
                     );
@@ -109,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("text/plain");
             intent.putExtra(Intent.EXTRA_SUBJECT, "Share");
-            intent.putExtra(Intent.EXTRA_TEXT, "最好的Android things开发者桌面 http://blog.qingyuyu.cn/");
+            intent.putExtra(Intent.EXTRA_TEXT, "Android things开发者桌面 http://blog.qingyuyu.cn/");
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(Intent.createChooser(intent, getTitle()));
             return true;
@@ -124,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
 
     void setView() {
 
-        MyGridViewAdapter adapter = new MyGridViewAdapter(MainActivity.this, appList);
+         adapter = new MyGridViewAdapter(MainActivity.this, appList);
         gview.setAdapter(adapter);
         gview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -161,5 +171,16 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    public void update() {
+        appList.clear();
+        appList=Util.getAppInfoList(MainActivity.this);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }
+        });
+    }
 }
 

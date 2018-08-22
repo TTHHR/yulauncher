@@ -13,10 +13,6 @@ public class Util
    static  ArrayList<AppInfo> data_list = new ArrayList<AppInfo>();
     public static ArrayList<AppInfo> getAppInfoList(Context cont)
 	{
-		if(!data_list.isEmpty())//如果数据不为空，直接返回
-        {
-            return data_list;
-        }
 		List<PackageInfo> packages = cont.getPackageManager().getInstalledPackages(0);   
 
 		for(int i=0;i<packages.size();i++) {   
