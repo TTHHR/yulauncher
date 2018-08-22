@@ -41,8 +41,7 @@ public class WebActivity extends AppCompatActivity {
     }
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if ((keyCode == KEYCODE_BACK) ) {
-            if(webView.canGoBack())
+        if ((keyCode == KEYCODE_BACK&&webView.canGoBack()) ) {
             webView.goBack();
             return true;
         }

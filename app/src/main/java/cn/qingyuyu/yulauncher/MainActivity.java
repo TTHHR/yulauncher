@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         } else if (id == R.id.nav_feedback) {
             Intent i=new Intent(MainActivity.this,WebActivity.class);
-            i.putExtra("url",  "http://blog.qingyuyu.cn/feed/" );
+            i.putExtra("url",  "http://blog.qingyuyu.cn/read.php/yulauncher-feedback/" );
             startActivity(i);
             return  true;
         }
