@@ -16,8 +16,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -29,19 +37,21 @@ public class MainActivity extends AppCompatActivity implements MainActivityInter
     List<AppInfo> appList = null;
     MyGridViewAdapter adapter;
     private MyReceiver myReceiver=null;
+    TextView info;
+    String ip="unknow";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
 
-        gview = (GridView) findViewById(R.id.gview);
+        gview =  findViewById(R.id.gview);
         appList = Util.getAppInfoList(MainActivity.this);
         setView();
 
         Util.machineId = Build.SERIAL;//唯一号
 
-
+        info=findViewById(R.id.info);
 
     }
 
@@ -51,8 +61,10 @@ public class MainActivity extends AppCompatActivity implements MainActivityInter
             @Override
             public void run() {
                 try {
-                    Thread.sleep(1500);
-
+                    NetworkInterface networkInterface = getActiveNetwork();
+                    if (networkInterface != null) {
+                       ip=" IP:"+getIpAddress(networkInterface, true);
+                    }
                     runOnUiThread(
                             new Runnable() {
                                 @Override
@@ -78,6 +90,26 @@ public class MainActivity extends AppCompatActivity implements MainActivityInter
                                 }
                             }
                     );
+                    while(true)
+                    {
+                        Thread.sleep(1000);
+                        File f=new File("/sys/class/thermal/thermal_zone0/temp");
+                        InputStream is=new FileInputStream(f);
+                        byte[] b=new byte[]{0,0,'.',0,0,0};
+                        is.read(b);
+                        b[5]=b[4];
+                        b[4]=b[3];
+                        b[3]=b[2];
+                        b[2]='.';
+                        String s=new String(b);
+                        final float temp=Float.parseFloat(s);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                info.setText(ip+" temp:"+temp);
+                            }
+                        });
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -85,7 +117,43 @@ public class MainActivity extends AppCompatActivity implements MainActivityInter
         }).start();
         super.onStart();
     }
+    private static NetworkInterface getActiveNetwork() {
+        try {
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            if (interfaces != null && !interfaces.isEmpty()) {
+                int count = interfaces.size();
+                for (int i = 0; i < count; i++) {
+                    NetworkInterface networkInterface = interfaces.get(i);
+                    if (networkInterface.isUp() && (networkInterface.getName().contains("wlan") || networkInterface.getName().contains("eth"))) {
+                        return networkInterface;
+                    }
+                }
+            }
+        } catch (Exception ex) {
+        } // for now eat exceptions
+        return null;
+    }
+    private String getIpAddress(NetworkInterface networkInterface, boolean useIPv4) {
+        List<InetAddress> addrs = Collections.list(networkInterface.getInetAddresses());
+        for (InetAddress addr : addrs) {
+            if (!addr.isLoopbackAddress()) {
+                String sAddr = addr.getHostAddress();
+                //boolean isIPv4 = InetAddressUtils.isIPv4Address(sAddr);
+                boolean isIPv4 = sAddr.indexOf(':') < 0;
 
+                if (useIPv4) {
+                    if (isIPv4)
+                        return sAddr;
+                } else {
+                    if (!isIPv4) {
+                        int delim = sAddr.indexOf('%'); // drop ip6 zone suffix
+                        return delim < 0 ? sAddr.toUpperCase() : sAddr.substring(0, delim).toUpperCase();
+                    }
+                }
+            }
+        }
+        return null;
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();
